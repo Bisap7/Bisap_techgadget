@@ -75,24 +75,24 @@ require_once 'header.php';
                                                 </div>
                                             </div>
                                         </td>
-                                        <td>$<?= number_format($item['price'], 2) ?></td>
+                                        <td>रु <?= number_format($item['price'], 2) ?></td>
                                         <td><?= $item['quantity'] ?></td>
-                                        <td>$<?= number_format($item['price'] * $item['quantity'], 2) ?></td>
+                                        <td>रु <?= number_format($item['price'] * $item['quantity'], 2) ?></td>
                                     </tr>
                                 <?php endforeach; ?>
                             </tbody>
                             <tfoot>
                                 <tr>
                                     <td colspan="3" class="text-end"><strong>Subtotal:</strong></td>
-                                    <td><strong>$<?= number_format($order['total_amount'], 2) ?></strong></td>
+                                    <td><strong>रु <?= number_format($order['total_amount'], 2) ?></strong></td>
                                 </tr>
                                 <tr>
                                     <td colspan="3" class="text-end"><strong>Shipping:</strong></td>
-                                    <td><strong>$0.00</strong></td>
+                                    <td><strong>रु 0.00</strong></td>
                                 </tr>
                                 <tr>
                                     <td colspan="3" class="text-end"><strong>Total:</strong></td>
-                                    <td><strong>$<?= number_format($order['total_amount'], 2) ?></strong></td>
+                                    <td><strong>रु <?= number_format($order['total_amount'], 2) ?></strong></td>
                                 </tr>
                             </tfoot>
                         </table>

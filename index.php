@@ -16,6 +16,7 @@
 </div>
 
 <div class="container">
+    <!-- Featured Products -->
     <h2 class="text-center mb-4">Featured Products</h2>
     <div class="row">
         <?php
@@ -24,10 +25,10 @@
         ?>
         <div class="col-md-3 mb-4">
             <div class="card product-card h-100">
-                <img src="images/<?= $product['image'] ?>" class="card-img-top p-3" alt="<?= $product['name'] ?>">
+                <img src="images/<?= htmlspecialchars($product['image']) ?>" class="card-img-top p-3" alt="<?= htmlspecialchars($product['name']) ?>">
                 <div class="card-body">
-                    <h5 class="card-title"><?= $product['name'] ?></h5>
-                    <p class="card-text">$<?= number_format($product['price'], 2) ?></p>
+                    <h5 class="card-title"><?= htmlspecialchars($product['name']) ?></h5>
+                    <p class="card-text">Rs. <?= number_format($product['price'], 2) ?></p>
                     <?php if ($product['stock'] > 0): ?>
                         <span class="badge bg-success">In Stock</span>
                     <?php else: ?>
@@ -42,13 +43,52 @@
         <?php endwhile; ?>
     </div>
 
+    <!-- Recommended Products -->
+    <h2 class="text-center mt-5 mb-4">Recommended for You</h2>
+    <div class="row">
+        <?php
+        $stmt = $pdo->query("
+            SELECT p.*, AVG(r.rating) as avg_rating
+            FROM products p
+            JOIN reviews r ON p.id = r.product_id
+            GROUP BY p.id
+            HAVING COUNT(r.id) >= 2 AND AVG(r.rating) >= 3.5
+            ORDER BY avg_rating DESC
+            LIMIT 4
+        ");
+        while ($product = $stmt->fetch(PDO::FETCH_ASSOC)):
+        ?>
+        <div class="col-md-3 mb-4">
+            <div class="card product-card h-100">
+                <img src="images/<?= htmlspecialchars($product['image']) ?>" class="card-img-top p-3" alt="<?= htmlspecialchars($product['name']) ?>">
+                <div class="card-body">
+                    <h5 class="card-title"><?= htmlspecialchars($product['name']) ?></h5>
+                    <p class="card-text">Rs. <?= number_format($product['price'], 2) ?></p>
+                    <p class="mb-1 text-warning">
+                        ⭐ <?= round($product['avg_rating'], 1) ?> / 5
+                    </p>
+                    <?php if ($product['stock'] > 0): ?>
+                        <span class="badge bg-success">In Stock</span>
+                    <?php else: ?>
+                        <span class="badge bg-danger">Out of Stock</span>
+                    <?php endif; ?>
+                </div>
+                <div class="card-footer bg-white">
+                    <a href="product.php?id=<?= $product['id'] ?>" class="btn btn-outline-primary w-100">View Details</a>
+                </div>
+            </div>
+        </div>
+        <?php endwhile; ?>
+    </div>
+
+    <!-- Features Section -->
     <div class="row mt-5">
         <div class="col-md-4 mb-4">
             <div class="card h-100">
                 <div class="card-body text-center">
                     <i class="bi bi-truck text-primary" style="font-size: 2rem;"></i>
                     <h5 class="card-title mt-3">Free Shipping</h5>
-                    <p class="card-text">On all orders over $50</p>
+                    <p class="card-text">On all orders over Rs. 5000</p>
                 </div>
             </div>
         </div>

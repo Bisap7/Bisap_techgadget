@@ -1,0 +1,56 @@
+body {
+  font-family: "Arial", sans-serif;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: rgb(233, 233, 233);
+}
+form {
+  background-color: white;
+  width: 350px;
+  padding: 1.5rem;
+  border-radius: 1rem;
+  box-shadow: 10px 10px 10px rgb(206, 206, 206);
+}
+.field {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 1rem;
+}
+input {
+  padding: 0.7rem;
+  border-radius: 0.4rem;
+  border: 1px solid gray;
+  outline: none;
+}
+label {
+  margin-bottom: 0.5rem;
+}
+h1 {
+  text-align: center;
+}
+.btn {
+  padding: 10px 15px;
+  background-color: black;
+  color: white;
+  width: 100%;
+  margin-top: 1rem;
+}
+
+.payment-container {
+  width: 300px;
+  text-align: center;
+}
+img {
+  width: 50%;
+  margin: 0 0 0 2rem;
+}
+.price {
+  font-size: 1.5rem;
+}
+.status {
+  color: green;
+  font-size: 1rem;
+  font-weight: bold;
+}

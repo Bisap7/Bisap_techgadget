@@ -17,7 +17,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $quantity = (int)$quantity;
 
             if ($quantity < 1) {
-                // Remove item if quantity is 0
+                // Remove item if quantity is less than 1
                 $stmt = $pdo->prepare("DELETE FROM cart WHERE id = ? AND user_id = ?");
                 $stmt->execute([$cart_id, $_SESSION['user_id']]);
             } else {
@@ -29,7 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $_SESSION['message'] = 'Cart updated successfully';
         $_SESSION['message_type'] = 'success';
-        redirect('cart.php'); // Use the redirect function from config.php
+        redirect('cart.php');
     } elseif (isset($_POST['remove_item'])) {
         $cart_id = (int)$_POST['cart_id'];
         $stmt = $pdo->prepare("DELETE FROM cart WHERE id = ? AND user_id = ?");
@@ -37,9 +37,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $_SESSION['message'] = 'Item removed from cart';
         $_SESSION['message_type'] = 'success';
-        redirect('cart.php'); // Use the redirect function from config.php
+        redirect('cart.php');
     } elseif (isset($_POST['checkout'])) {
-        redirect('checkout.php'); // Use the redirect function from config.php
+        redirect('checkout.php');
     }
 }
 
@@ -65,6 +65,14 @@ require_once 'header.php';
 <div class="container mt-4">
     <h2>Your Shopping Cart</h2>
 
+    <?php if (isset($_SESSION['message'])): ?>
+        <div class="alert alert-<?= $_SESSION['message_type'] ?> alert-dismissible fade show" role="alert">
+            <?= htmlspecialchars($_SESSION['message']) ?>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        <?php unset($_SESSION['message'], $_SESSION['message_type']); ?>
+    <?php endif; ?>
+
     <?php if (empty($cart_items)): ?>
         <div class="alert alert-info">
             Your cart is empty. <a href="products.php">Continue shopping</a>
@@ -72,7 +80,7 @@ require_once 'header.php';
     <?php else: ?>
         <form method="POST">
             <div class="table-responsive">
-                <table class="table">
+                <table class="table align-middle">
                     <thead>
                         <tr>
                             <th>Product</th>
@@ -87,16 +95,16 @@ require_once 'header.php';
                             <tr>
                                 <td>
                                     <div class="d-flex align-items-center">
-                                        <img src="images/<?= $item['image'] ?>" alt="<?= $item['name'] ?>" width="80" class="me-3">
+                                        <img src="images/<?= htmlspecialchars($item['image']) ?>" alt="<?= htmlspecialchars($item['name']) ?>" width="80" class="me-3">
                                         <div>
-                                            <h6 class="mb-0"><?= $item['name'] ?></h6>
+                                            <h6 class="mb-0"><?= htmlspecialchars($item['name']) ?></h6>
                                             <?php if ($item['quantity'] > $item['stock']): ?>
                                                 <small class="text-danger">Only <?= $item['stock'] ?> available</small>
                                             <?php endif; ?>
                                         </div>
                                     </div>
                                 </td>
-                                <td>$<?= number_format($item['price'], 2) ?></td>
+                                <td>Rs <?= number_format($item['price'], 2) ?></td>
                                 <td>
                                     <div class="input-group" style="width: 120px;">
                                         <input type="number" class="form-control quantity-input" 
@@ -105,13 +113,16 @@ require_once 'header.php';
                                             min="1" max="<?= $item['stock'] ?>">
                                     </div>
                                 </td>
-                                <td>$<?= number_format($item['price'] * $item['quantity'], 2) ?></td>
+                                <td>Rs <?= number_format($item['price'] * $item['quantity'], 2) ?></td>
                                 <td>
-                                    <!-- Add cart_id in value for removal -->
-                                    <button type="submit" name="remove_item" class="btn btn-danger btn-sm">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
-                                    <input type="hidden" name="cart_id" value="<?= $item['cart_id'] ?>"> <!-- Hidden cart_id -->
+                                    <!-- Separate form for remove button -->
+                                    <form method="POST" style="display:inline-block;">
+                                        <input type="hidden" name="cart_id" value="<?= $item['cart_id'] ?>">
+                                        <button type="submit" name="remove_item" class="btn btn-danger btn-sm" 
+                                            onclick="return confirm('Are you sure you want to remove this item?');">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
@@ -119,7 +130,7 @@ require_once 'header.php';
                     <tfoot>
                         <tr>
                             <td colspan="3" class="text-end"><strong>Total:</strong></td>
-                            <td><strong>$<?= number_format($total, 2) ?></strong></td>
+                            <td><strong>Rs <?= number_format($total, 2) ?></strong></td>
                             <td></td>
                         </tr>
                     </tfoot>

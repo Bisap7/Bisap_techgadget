@@ -68,7 +68,7 @@ require_once 'header.php';
             <div class="card bg-warning text-dark">
                 <div class="card-body">
                     <h5 class="card-title">Revenue</h5>
-                    <h2 class="card-text">$<?= number_format($revenue, 2) ?></h2>
+                    <h2 class="card-text">NPR <?= number_format($revenue, 2) ?></h2>
                 </div>
             </div>
         </div>
@@ -99,7 +99,7 @@ require_once 'header.php';
                                         <tr>
                                             <td><a href="order.php?id=<?= $order['id'] ?>"><?= $order['id'] ?></a></td>
                                             <td><?= $order['username'] ?></td>
-                                            <td>$<?= number_format($order['total_amount'], 2) ?></td>
+                                            <td>NPR <?= number_format($order['total_amount'], 2) ?></td>
                                             <td>
                                                 <span class="badge 
                                                     <?= $order['status'] === 'completed' ? 'bg-success' : 
@@ -142,7 +142,7 @@ require_once 'header.php';
                                     <?php foreach ($low_stock_products as $product): ?>
                                         <tr>
                                             <td><?= $product['name'] ?></td>
-                                            <td>$<?= number_format($product['price'], 2) ?></td>
+                                            <td>NPR <?= number_format($product['price'], 2) ?></td>
                                             <td class="<?= $product['stock'] < 1 ? 'text-danger' : 'text-warning' ?>">
                                                 <?= $product['stock'] ?>
                                             </td>

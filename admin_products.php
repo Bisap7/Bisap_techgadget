@@ -59,7 +59,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $image = uniqid() . '.' . $file_ext;
                 move_uploaded_file($_FILES['image']['tmp_name'], $upload_dir . $image);
 
-                // Delete old image if not default
                 if ($_POST['existing_image'] !== 'default.jpg') {
                     @unlink($upload_dir . $_POST['existing_image']);
                 }
@@ -78,14 +77,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif (isset($_POST['delete_product'])) {
         $id = (int)$_POST['id'];
 
-        // Get image to delete
         $stmt = $pdo->prepare("SELECT image FROM products WHERE id = ?");
         $stmt->execute([$id]);
         $product = $stmt->fetch(PDO::FETCH_ASSOC);
 
         $stmt = $pdo->prepare("DELETE FROM products WHERE id = ?");
         if ($stmt->execute([$id])) {
-            // Delete image if not default
             if ($product['image'] !== 'default.jpg') {
                 @unlink('images/' . $product['image']);
             }
@@ -100,7 +97,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Fetch all products
 $products = $pdo->query("SELECT * FROM products ORDER BY id DESC")->fetchAll(PDO::FETCH_ASSOC);
 
 require_once 'header.php';
@@ -146,7 +142,7 @@ require_once 'header.php';
                             <td><?= $product['id'] ?></td>
                             <td><img src="images/<?= $product['image'] ?>" alt="<?= htmlspecialchars($product['name']) ?>" width="50"></td>
                             <td><?= htmlspecialchars($product['name']) ?></td>
-                            <td>$<?= number_format($product['price'], 2) ?></td>
+                            <td>रू<?= number_format($product['price'], 2) ?></td>
                             <td><?= $product['stock'] ?></td>
                             <td><?= htmlspecialchars($product['category']) ?></td>
                             <td>
@@ -185,7 +181,6 @@ require_once 'header.php';
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <!-- Form Fields -->
                     <div class="mb-3">
                         <label>Product Name</label>
                         <input type="text" class="form-control" name="name" required>
@@ -196,7 +191,7 @@ require_once 'header.php';
                     </div>
                     <div class="row">
                         <div class="col">
-                            <label>Price</label>
+                            <label>Price (रू)</label>
                             <input type="number" step="0.01" class="form-control" name="price" required>
                         </div>
                         <div class="col">
@@ -233,7 +228,6 @@ require_once 'header.php';
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <!-- Form Fields -->
                     <div class="mb-3">
                         <label>Product Name</label>
                         <input type="text" class="form-control" name="name" id="edit_name" required>
@@ -244,7 +238,7 @@ require_once 'header.php';
                     </div>
                     <div class="row">
                         <div class="col">
-                            <label>Price</label>
+                            <label>Price (रू)</label>
                             <input type="number" step="0.01" class="form-control" name="price" id="edit_price" required>
                         </div>
                         <div class="col">
@@ -273,7 +267,7 @@ require_once 'header.php';
 </div>
 
 <script>
-// Edit Product - Fill Modal with Current Data
+// Edit Product Modal JS
 document.querySelectorAll('.edit-product').forEach(button => {
     button.addEventListener('click', () => {
         document.getElementById('edit_id').value = button.dataset.id;

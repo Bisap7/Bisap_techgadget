@@ -38,7 +38,7 @@ require_once 'config.php';  // Include config.php before any output
     </style>
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark position-relative">
         <div class="container">
             <a class="navbar-brand" href="index.php">Tech Gadget Store</a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
@@ -63,16 +63,27 @@ require_once 'config.php';  // Include config.php before any output
                         </li>
                     <?php endif; ?>
                 </ul>
+
+                <?php if (isLoggedIn()): ?>
+                    <?php
+                        // Get cart count
+                        $stmt = $pdo->prepare("SELECT SUM(quantity) as count FROM cart WHERE user_id = ?");
+                        $stmt->execute([$_SESSION['user_id']]);
+                        $cart_count = $stmt->fetch(PDO::FETCH_ASSOC)['count'] ?? 0;
+
+                        // Fetch username (optional)
+                        $stmt = $pdo->prepare("SELECT username FROM users WHERE id = ?");
+                        $stmt->execute([$_SESSION['user_id']]);
+                        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+                        $_SESSION['username'] = $user['username'] ?? 'User';
+                    ?>
+                <?php endif; ?>
+
                 <ul class="navbar-nav">
                     <li class="nav-item position-relative">
                         <a class="nav-link" href="cart.php">
                             <i class="bi bi-cart"></i>
                             <?php if (isLoggedIn()): ?>
-                                <?php 
-                                    $stmt = $pdo->prepare("SELECT SUM(quantity) as count FROM cart WHERE user_id = ?");
-                                    $stmt->execute([$_SESSION['user_id']]);
-                                    $cart_count = $stmt->fetch(PDO::FETCH_ASSOC)['count'] ?? 0;
-                                ?>
                                 <span class="cart-count"><?= $cart_count ?></span>
                             <?php endif; ?>
                         </a>
@@ -89,18 +100,15 @@ require_once 'config.php';  // Include config.php before any output
                             </ul>
                         </li>
                     <?php else: ?>
-                        <li class="nav-item">
-                            <a class="nav-link" href="login.php">Login</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="register.php">Register</a>
-                        </li>
+                        <li class="nav-item"><a class="nav-link" href="login.php">Login</a></li>
+                        <li class="nav-item"><a class="nav-link" href="register.php">Register</a></li>
                     <?php endif; ?>
                 </ul>
+
                 <form class="d-flex ms-3" action="products.php" method="get">
                     <input class="form-control me-2" type="search" name="search" placeholder="Search products">
                     <button class="btn btn-outline-light" type="submit">Search</button>
-                </form>
+                </form> 
             </div>
         </div>
     </nav>

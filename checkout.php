@@ -1,183 +1,96 @@
 <?php
-require_once 'config.php';  // Ensure config.php is included, which has the redirect() function
+require 'config.php';  // DB and session setup
 
-// Ensure the user is logged in to checkout
 if (!isLoggedIn()) {
-    $_SESSION['message'] = 'Please login to checkout';
-    $_SESSION['message_type'] = 'warning';
-    redirect('login.php');  // Use the redirect function from config.php
+    header("Location: login.php");
+    exit;
 }
 
-// Get cart items with product details
-$stmt = $pdo->prepare("
-    SELECT c.id as cart_id, c.quantity, p.id, p.name, p.price, p.image, p.stock 
-    FROM cart c 
-    JOIN products p ON c.product_id = p.id 
+$userId = $_SESSION['user_id'];
+
+// Calculate total amount from cart
+function getCartTotal($pdo, $userId) {
+    $stmt = $pdo->prepare("
+        SELECT SUM(c.quantity * p.price) AS total
+        FROM cart c
+        JOIN products p ON c.product_id = p.id
+        WHERE c.user_id = ?
+    ");
+    $stmt->execute([$userId]);
+    $result = $stmt->fetch(PDO::FETCH_ASSOC);
+    return $result['total'] ?? 0;
+}
+
+$amount = getCartTotal($pdo, $userId);
+
+if ($amount <= 0) {
+    echo "Cart is empty or invalid amount.";
+    exit;
+}
+
+// Generate unique order reference
+$orderRef = uniqid("ORD_");
+
+// Insert order with status Pending
+$stmtOrder = $pdo->prepare("INSERT INTO orders (user_id, total_amount, status, payment_method, created_at, ref_id) VALUES (?, ?, 'Pending', 'eSewa', NOW(), ?)");
+$stmtOrder->execute([$userId, $amount, $orderRef]);
+
+// Get the last inserted order ID
+$orderId = $pdo->lastInsertId();
+
+if (!$orderId) {
+    echo "Failed to create order.";
+    exit;
+}
+
+// Fetch cart items for insertion into order_items
+$stmtCartItems = $pdo->prepare("
+    SELECT c.product_id, c.quantity, p.price
+    FROM cart c
+    JOIN products p ON c.product_id = p.id
     WHERE c.user_id = ?
 ");
-$stmt->execute([$_SESSION['user_id']]);
-$cart_items = $stmt->fetchAll(PDO::FETCH_ASSOC);
+$stmtCartItems->execute([$userId]);
+$cartItems = $stmtCartItems->fetchAll(PDO::FETCH_ASSOC);
 
-// Check if cart is empty
-if (empty($cart_items)) {
-    $_SESSION['message'] = 'Your cart is empty';
-    $_SESSION['message_type'] = 'warning';
-    redirect('cart.php');  // Use the redirect function from config.php
+if (empty($cartItems)) {
+    echo "Cart is empty. Cannot create order items.";
+    exit;
 }
 
-// Check stock availability
-$out_of_stock = false;
-foreach ($cart_items as $item) {
-    if ($item['quantity'] > $item['stock']) {
-        $out_of_stock = true;
-        break;
-    }
+// Prepare statement once for inserting order items
+$stmtInsertItem = $pdo->prepare("INSERT INTO order_items (order_id, product_id, quantity, price) VALUES (?, ?, ?, ?)");
+
+// Insert each cart item
+foreach ($cartItems as $item) {
+    $stmtInsertItem->execute([$orderId, $item['product_id'], $item['quantity'], $item['price']]);
 }
 
-if ($out_of_stock) {
-    $_SESSION['message'] = 'Some items in your cart are out of stock or quantity exceeds availability';
-    $_SESSION['message_type'] = 'danger';
-    redirect('cart.php');  // Use the redirect function from config.php
-}
+// Clear the user's cart after order creation
+$stmtClearCart = $pdo->prepare("DELETE FROM cart WHERE user_id = ?");
+$stmtClearCart->execute([$userId]);
 
-// Calculate total
-$total = 0;
-foreach ($cart_items as $item) {
-    $total += $item['price'] * $item['quantity'];
-}
+// eSewa integration parameters
+$productCode = "EPAYTEST";
+$secretKey = "8gBm/:&EnhH.1/q";
+$signedFields = "total_amount,transaction_uuid,product_code";
 
-// Handle checkout
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    try {
-        $pdo->beginTransaction();
-        
-        // Create order
-        $stmt = $pdo->prepare("INSERT INTO orders (user_id, total_amount, payment_method) VALUES (?, ?, ?)");
-        $stmt->execute([$_SESSION['user_id'], $total, 'eSewa']);
-        $order_id = $pdo->lastInsertId();
-        
-        // Add order items and update product stock
-        foreach ($cart_items as $item) {
-            // Add to order items
-            $stmt = $pdo->prepare("INSERT INTO order_items (order_id, product_id, quantity, price) VALUES (?, ?, ?, ?)");
-            $stmt->execute([$order_id, $item['id'], $item['quantity'], $item['price']]);
-            
-            // Update product stock
-            $stmt = $pdo->prepare("UPDATE products SET stock = stock - ? WHERE id = ?");
-            $stmt->execute([$item['quantity'], $item['id']]);
-        }
-        
-        // Clear cart
-        $stmt = $pdo->prepare("DELETE FROM cart WHERE user_id = ?");
-        $stmt->execute([$_SESSION['user_id']]);
-        
-        $pdo->commit();
-        
-        $_SESSION['message'] = 'Order placed successfully! Thank you for your purchase.';
-        $_SESSION['message_type'] = 'success';
-        redirect('order.php?id=' . $order_id);  // Use the redirect function from config.php
-    } catch (Exception $e) {
-        $pdo->rollBack();
-        $_SESSION['message'] = 'Checkout failed: ' . $e->getMessage();
-        $_SESSION['message_type'] = 'danger';
-        redirect('checkout.php');  // Use the redirect function from config.php
-    }
-}
-
-require_once 'header.php';
+$signatureData = "total_amount=$amount,transaction_uuid=$orderRef,product_code=$productCode";
+$signature = base64_encode(hash_hmac('sha256', $signatureData, $secretKey, true));
 ?>
 
-<div class="container mt-4">
-    <div class="row">
-        <div class="col-md-8">
-            <div class="card mb-4">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0">Order Summary</h5>
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table">
-                            <thead>
-                                <tr>
-                                    <th>Product</th>
-                                    <th>Price</th>
-                                    <th>Quantity</th>
-                                    <th>Total</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php foreach ($cart_items as $item): ?>
-                                    <tr>
-                                        <td>
-                                            <div class="d-flex align-items-center">
-                                                <img src="images/<?= $item['image'] ?>" alt="<?= $item['name'] ?>" width="60" class="me-3">
-                                                <div>
-                                                    <h6 class="mb-0"><?= $item['name'] ?></h6>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td>$<?= number_format($item['price'], 2) ?></td>
-                                        <td><?= $item['quantity'] ?></td>
-                                        <td>$<?= number_format($item['price'] * $item['quantity'], 2) ?></td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                            <tfoot>
-                                <tr>
-                                    <td colspan="3" class="text-end"><strong>Subtotal:</strong></td>
-                                    <td><strong>$<?= number_format($total, 2) ?></strong></td>
-                                </tr>
-                                <tr>
-                                    <td colspan="3" class="text-end"><strong>Shipping:</strong></td>
-                                    <td><strong>$0.00</strong></td>
-                                </tr>
-                                <tr>
-                                    <td colspan="3" class="text-end"><strong>Total:</strong></td>
-                                    <td><strong>$<?= number_format($total, 2) ?></strong></td>
-                                </tr>
-                            </tfoot>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-md-4">
-            <div class="card">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0">Payment Method</h5>
-                </div>
-                <div class="card-body">
-                    <form method="POST">
-                        <div class="mb-3">
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="payment_method" id="esewa" value="eSewa" checked>
-                                <label class="form-check-label" for="esewa">
-                                    <img src="esewa.png" alt="eSewa" class="img-fluid">
-                                </label>
-                            </div>
-                        </div>
-                        
-                        <div class="d-grid">
-                            <button type="submit" class="btn btn-primary btn-lg">
-                                Place Order
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-            
-            <div class="card mt-4">
-                <div class="card-header bg-light">
-                    <h5 class="mb-0">Need Help?</h5>
-                </div>
-                <div class="card-body">
-                    <p>If you have any questions about your order, please contact our customer service.</p>
-                    <a href="contact.php" class="btn btn-outline-secondary">Contact Us</a>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+<form method="POST" action="https://rc-epay.esewa.com.np/api/epay/main/v2/form">
+    <input type="hidden" name="amount" value="<?= htmlspecialchars($amount) ?>">
+    <input type="hidden" name="tax_amount" value="0">
+    <input type="hidden" name="total_amount" value="<?= htmlspecialchars($amount) ?>">
+    <input type="hidden" name="transaction_uuid" value="<?= htmlspecialchars($orderRef) ?>">
+    <input type="hidden" name="product_code" value="<?= htmlspecialchars($productCode) ?>">
+    <input type="hidden" name="product_service_charge" value="0">
+    <input type="hidden" name="product_delivery_charge" value="0">
+    <input type="hidden" name="success_url" value="http://localhost/bisap/esewa_success.php">
+    <input type="hidden" name="failure_url" value="http://localhost/bisap/esewa_failure.php">
+    <input type="hidden" name="signed_field_names" value="<?= htmlspecialchars($signedFields) ?>">
+    <input type="hidden" name="signature" value="<?= htmlspecialchars($signature) ?>">
 
-<?php require_once 'footer.php'; ?>
+    <button type="submit" class="btn btn-success">Pay via eSewa</button>
+</form>

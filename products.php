@@ -1,9 +1,25 @@
 <?php
 require_once 'config.php';
 
+// Sanitize input
+function sanitize($input) {
+    return htmlspecialchars(trim($input), ENT_QUOTES, 'UTF-8');
+}
+
 $search = isset($_GET['search']) ? sanitize($_GET['search']) : '';
 $category = isset($_GET['category']) ? sanitize($_GET['category']) : '';
 $sort = isset($_GET['sort']) ? sanitize($_GET['sort']) : 'name_asc';
+
+// Properly handle min_price and max_price to avoid filtering issues
+$min_price = null;
+if (isset($_GET['min_price']) && $_GET['min_price'] !== '') {
+    $min_price = floatval($_GET['min_price']);
+}
+
+$max_price = null;
+if (isset($_GET['max_price']) && $_GET['max_price'] !== '') {
+    $max_price = floatval($_GET['max_price']);
+}
 
 // Build query
 $query = "SELECT * FROM products WHERE 1=1";
@@ -18,6 +34,16 @@ if (!empty($search)) {
 if (!empty($category)) {
     $query .= " AND category = ?";
     $params[] = $category;
+}
+
+if (!is_null($min_price)) {
+    $query .= " AND price >= ?";
+    $params[] = $min_price;
+}
+
+if (!is_null($max_price)) {
+    $query .= " AND price <= ?";
+    $params[] = $max_price;
 }
 
 // Sorting
@@ -38,7 +64,7 @@ switch ($sort) {
         $query .= " ORDER BY name ASC";
 }
 
-// Get categories for filter
+// Get categories for filter dropdown
 $categories = $pdo->query("SELECT DISTINCT category FROM products WHERE category IS NOT NULL")->fetchAll(PDO::FETCH_COLUMN);
 
 // Get products
@@ -62,7 +88,7 @@ require_once 'header.php';
                             <label for="search" class="form-label">Search</label>
                             <input type="text" class="form-control" id="search" name="search" value="<?= htmlspecialchars($search) ?>">
                         </div>
-                        
+
                         <div class="mb-3">
                             <label for="category" class="form-label">Category</label>
                             <select class="form-select" id="category" name="category">
@@ -74,7 +100,19 @@ require_once 'header.php';
                                 <?php endforeach; ?>
                             </select>
                         </div>
-                        
+
+                        <div class="mb-3">
+                            <label class="form-label">Price Range (NRs)</label>
+                            <div class="input-group mb-2">
+                                <span class="input-group-text">Min</span>
+                                <input type="number" class="form-control" name="min_price" value="<?= is_null($min_price) ? '' : htmlspecialchars($min_price) ?>" placeholder="Min (NRs)" step="0.01" min="0">
+                            </div>
+                            <div class="input-group">
+                                <span class="input-group-text">Max</span>
+                                <input type="number" class="form-control" name="max_price" value="<?= is_null($max_price) ? '' : htmlspecialchars($max_price) ?>" placeholder="Max (NRs)" step="0.01" min="0">
+                            </div>
+                        </div>
+
                         <div class="mb-3">
                             <label for="sort" class="form-label">Sort By</label>
                             <select class="form-select" id="sort" name="sort">
@@ -84,14 +122,14 @@ require_once 'header.php';
                                 <option value="price_desc" <?= $sort === 'price_desc' ? 'selected' : '' ?>>Price (High to Low)</option>
                             </select>
                         </div>
-                        
+
                         <button type="submit" class="btn btn-primary w-100">Apply Filters</button>
                         <a href="products.php" class="btn btn-outline-secondary w-100 mt-2">Reset</a>
                     </form>
                 </div>
             </div>
         </div>
-        
+
         <div class="col-md-9">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h2>Products</h2>
@@ -99,7 +137,7 @@ require_once 'header.php';
                     <?= count($products) ?> products found
                 </div>
             </div>
-            
+
             <?php if (empty($products)): ?>
                 <div class="alert alert-info">
                     No products found matching your criteria.
@@ -113,7 +151,7 @@ require_once 'header.php';
                                 <div class="card-body">
                                     <h5 class="card-title"><?= htmlspecialchars($product['name']) ?></h5>
                                     <p class="card-text"><?= htmlspecialchars(substr($product['description'], 0, 100)) ?>...</p>
-                                    <p class="card-text"><strong>$<?= number_format($product['price'], 2) ?></strong></p>
+                                    <p class="card-text"><strong>NRs <?= number_format($product['price'], 2) ?></strong></p>
                                     <?php if ($product['stock'] > 0): ?>
                                         <span class="badge bg-success">In Stock (<?= $product['stock'] ?>)</span>
                                     <?php else: ?>
