@@ -2,7 +2,8 @@
 require_once 'config.php';
 
 // Sanitize input
-function sanitize($input) {
+function sanitize($input)
+{
     return htmlspecialchars(trim($input), ENT_QUOTES, 'UTF-8');
 }
 
@@ -152,14 +153,47 @@ require_once 'header.php';
                                     <h5 class="card-title"><?= htmlspecialchars($product['name']) ?></h5>
                                     <p class="card-text"><?= htmlspecialchars(substr($product['description'], 0, 100)) ?>...</p>
                                     <p class="card-text"><strong>NRs <?= number_format($product['price'], 2) ?></strong></p>
-                                    <?php if ($product['stock'] > 0): ?>
-                                        <span class="badge bg-success">In Stock (<?= $product['stock'] ?>)</span>
-                                    <?php else: ?>
+                                    <?php if ($product['stock'] <= 0): ?>
+
                                         <span class="badge bg-danger">Out of Stock</span>
+
+                                    <?php elseif ($product['stock'] <= 3): ?>
+
+                                        <span class="badge bg-danger">
+                                            Only <?= $product['stock'] ?> left!
+                                        </span>
+
+                                        <p class="text-danger small mt-1 fw-bold">
+                                            Hurry! Selling fast 🔥
+                                        </p>
+
+                                    <?php elseif ($product['stock'] <= 10): ?>
+
+                                        <span class="badge bg-warning text-dark">
+                                            Limited Stock (<?= $product['stock'] ?>)
+                                        </span>
+
+                                    <?php else: ?>
+
+                                        <span class="badge bg-success">
+                                            In Stock (<?= $product['stock'] ?>)
+                                        </span>
+
                                     <?php endif; ?>
                                 </div>
                                 <div class="card-footer bg-white">
-                                    <a href="product.php?id=<?= $product['id'] ?>" class="btn btn-primary w-100">View Details</a>
+
+                                    <a href="product.php?id=<?= $product['id'] ?>" class="btn btn-primary w-100 mb-2">
+                                        View Details
+                                    </a>
+
+                                    <form method="post" action="compare_add.php">
+                                        <input type="hidden" name="id" value="<?= $product['id'] ?>">
+                                        <button type="submit" class="btn btn-warning w-100">
+                                            ⚖ Compare
+                                        </button>
+                                    </form>
+
                                 </div>
                             </div>
                         </div>

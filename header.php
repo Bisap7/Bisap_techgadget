@@ -3,6 +3,7 @@ require_once 'config.php';  // Include config.php before any output
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -14,13 +15,16 @@ require_once 'config.php';  // Include config.php before any output
             height: 200px;
             object-fit: contain;
         }
+
         .product-card {
             transition: transform 0.3s;
         }
+
         .product-card:hover {
             transform: translateY(-5px);
-            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
         }
+
         .cart-count {
             position: absolute;
             top: -5px;
@@ -37,6 +41,7 @@ require_once 'config.php';  // Include config.php before any output
         }
     </style>
 </head>
+
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark position-relative">
         <div class="container">
@@ -66,20 +71,27 @@ require_once 'config.php';  // Include config.php before any output
 
                 <?php if (isLoggedIn()): ?>
                     <?php
-                        // Get cart count
-                        $stmt = $pdo->prepare("SELECT SUM(quantity) as count FROM cart WHERE user_id = ?");
-                        $stmt->execute([$_SESSION['user_id']]);
-                        $cart_count = $stmt->fetch(PDO::FETCH_ASSOC)['count'] ?? 0;
+                    // Get cart count
+                    $stmt = $pdo->prepare("SELECT SUM(quantity) as count FROM cart WHERE user_id = ?");
+                    $stmt->execute([$_SESSION['user_id']]);
+                    $cart_count = $stmt->fetch(PDO::FETCH_ASSOC)['count'] ?? 0;
 
-                        // Fetch username (optional)
-                        $stmt = $pdo->prepare("SELECT username FROM users WHERE id = ?");
-                        $stmt->execute([$_SESSION['user_id']]);
-                        $user = $stmt->fetch(PDO::FETCH_ASSOC);
-                        $_SESSION['username'] = $user['username'] ?? 'User';
+                    // Fetch username (optional)
+                    $stmt = $pdo->prepare("SELECT username FROM users WHERE id = ?");
+                    $stmt->execute([$_SESSION['user_id']]);
+                    $user = $stmt->fetch(PDO::FETCH_ASSOC);
+                    $_SESSION['username'] = $user['username'] ?? 'User';
                     ?>
                 <?php endif; ?>
 
                 <ul class="navbar-nav">
+
+                    <li class="nav-item">
+                        <a class="nav-link" href="compare.php">
+                            ⚖ Compare
+                        </a>
+                    </li>
+
                     <li class="nav-item position-relative">
                         <a class="nav-link" href="cart.php">
                             <i class="bi bi-cart"></i>
@@ -95,7 +107,9 @@ require_once 'config.php';  // Include config.php before any output
                             </a>
                             <ul class="dropdown-menu">
                                 <li><a class="dropdown-item" href="profile.php">Profile</a></li>
-                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <hr class="dropdown-divider">
+                                </li>
                                 <li><a class="dropdown-item" href="logout.php">Logout</a></li>
                             </ul>
                         </li>
@@ -108,7 +122,7 @@ require_once 'config.php';  // Include config.php before any output
                 <form class="d-flex ms-3" action="products.php" method="get">
                     <input class="form-control me-2" type="search" name="search" placeholder="Search products">
                     <button class="btn btn-outline-light" type="submit">Search</button>
-                </form> 
+                </form>
             </div>
         </div>
     </nav>

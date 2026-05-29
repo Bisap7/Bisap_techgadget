@@ -81,7 +81,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->execute([$id]);
         $product = $stmt->fetch(PDO::FETCH_ASSOC);
 
+        $stmt = $pdo->prepare("DELETE FROM reviews WHERE product_id = ?");
+        $stmt->execute([$id]);
+
         $stmt = $pdo->prepare("DELETE FROM products WHERE id = ?");
+        if ($stmt->execute([$id])) {
+
+            if ($product['image'] !== 'default.jpg') {
+                @unlink('images/' . $product['image']);
+            }
+
+            $_SESSION['message'] = 'Product deleted successfully';
+            $_SESSION['message_type'] = 'success';
+            redirect('admin_products.php');
+        } else {
+            $_SESSION['message'] = 'Failed to delete product';
+            $_SESSION['message_type'] = 'danger';
+        }
         if ($stmt->execute([$id])) {
             if ($product['image'] !== 'default.jpg') {
                 @unlink('images/' . $product['image']);
@@ -146,7 +162,7 @@ require_once 'header.php';
                             <td><?= $product['stock'] ?></td>
                             <td><?= htmlspecialchars($product['category']) ?></td>
                             <td>
-                                <button class="btn btn-sm btn-warning edit-product" 
+                                <button class="btn btn-sm btn-warning edit-product"
                                     data-id="<?= $product['id'] ?>"
                                     data-name="<?= htmlspecialchars($product['name']) ?>"
                                     data-description="<?= htmlspecialchars($product['description']) ?>"
@@ -267,21 +283,21 @@ require_once 'header.php';
 </div>
 
 <script>
-// Edit Product Modal JS
-document.querySelectorAll('.edit-product').forEach(button => {
-    button.addEventListener('click', () => {
-        document.getElementById('edit_id').value = button.dataset.id;
-        document.getElementById('edit_name').value = button.dataset.name;
-        document.getElementById('edit_description').value = button.dataset.description;
-        document.getElementById('edit_price').value = button.dataset.price;
-        document.getElementById('edit_stock').value = button.dataset.stock;
-        document.getElementById('edit_category').value = button.dataset.category;
-        document.getElementById('existing_image').value = button.dataset.image;
-        document.getElementById('current_image').src = 'images/' + button.dataset.image;
+    // Edit Product Modal JS
+    document.querySelectorAll('.edit-product').forEach(button => {
+        button.addEventListener('click', () => {
+            document.getElementById('edit_id').value = button.dataset.id;
+            document.getElementById('edit_name').value = button.dataset.name;
+            document.getElementById('edit_description').value = button.dataset.description;
+            document.getElementById('edit_price').value = button.dataset.price;
+            document.getElementById('edit_stock').value = button.dataset.stock;
+            document.getElementById('edit_category').value = button.dataset.category;
+            document.getElementById('existing_image').value = button.dataset.image;
+            document.getElementById('current_image').src = 'images/' + button.dataset.image;
 
-        new bootstrap.Modal(document.getElementById('editProductModal')).show();
+            new bootstrap.Modal(document.getElementById('editProductModal')).show();
+        });
     });
-});
 </script>
 
 <?php require_once 'footer.php'; ?>
